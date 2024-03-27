@@ -140,10 +140,10 @@ def run_recursively(
             output_frames, output_timestamps
         )
 
-        input_image_sequence = storage._images.skip_and_repeat(number_of_frames_to_skip, number_of_frames_to_insert)
+        # input_image_sequence = storage._images.skip_and_repeat(number_of_frames_to_skip, number_of_frames_to_insert)
         output_image_sequence.to_folder(leaf_output_folder, file_template="frame_{:06d}.png")
-        output_image_sequence.to_video(os.path.join(leaf_output_folder, "interpolated.mp4"))
-        input_image_sequence.to_video(os.path.join(leaf_output_folder, "input.mp4"))
+        # output_image_sequence.to_video(os.path.join(leaf_output_folder, "interpolated.mp4"))
+        # input_image_sequence.to_video(os.path.join(leaf_output_folder, "input.mp4"))
 
 
 @click.command()
