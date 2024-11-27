@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 import yaml
 import glob
+from pathlib import Path
 
 from skimage.metrics import structural_similarity
 from skimage.metrics import peak_signal_noise_ratio
@@ -123,36 +124,77 @@ if __name__ == '__main__':
     parser.add_argument('-o', "--output_file")
     parser.add_argument('-g', "--grayscale", action="store_true")
     parser.add_argument('-s', "--num_skips", type=int, default=7)
+    parser.add_argument('--seqs', type=str, default=[], nargs='+', help='Sequences to be evaluated')
+    parser.add_argument('--methods', type=str, default=[], nargs='+', help='Methods to be evaluated')
     args = parser.parse_args()
 
     num_processes = args.num_processes
+    seqs_to_eval = args.seqs
+    methods_to_eval = args.methods
 
     data = {}
 
     weights = np.linspace(0, 1, args.num_skips+2)[1:-1]
 
-    for path, subdirs, files in os.walk(args.results_folder):
-        if len(files) == 0:
-            continue
-        
-        curr_dataset = basename(dirname(path))   
+    res_path = Path(args.results_folder)
+    datasets_path = sorted([d_path for d_path in res_path.iterdir() if d_path.is_dir()])  # Keep nomenclature --> seqs
+    method_files = dict()
+
+    for d_path in datasets_path:
+        curr_dataset = d_path.stem
+
         if curr_dataset in data:
-            continue 
-        
+            continue
+
+        if curr_dataset not in seqs_to_eval and len(seqs_to_eval) > 0:
+            continue
+
+        method_folders = sorted([m_path for m_path in d_path.iterdir() if m_path.is_dir()])  # Keep nomenclature
+        # Filter the methods we want to evaluate
+        method_folders = [m_path for m_path in method_folders if (m_path.stem in methods_to_eval) or (len(methods_to_eval) == 0) or (m_path.stem == 'GT')]
+        methods = [m_path.stem for m_path in method_folders]
+
         # collect all method data
-        print(path)
-        method_folders = sorted(glob.glob(join(dirname(path), "*")))
-        methods = [basename(m) for m in method_folders]
-        method_files = {methods[i]: sorted(glob.glob(join(method_folders[i], "*"))) for i in range(len(methods))}
+        for m_path in method_folders:
+            m_files = sorted([str(m) for m in m_path.iterdir() if m.is_file()])
+            method_files[m_path.stem] = m_files
 
         # prepare data dict
-        summary = {method: {metric: {w: [] for w in weights} for metric in METRICS} for method in methods} 
+        summary = {method: {metric: {w: [] for w in weights} for metric in METRICS} for method in methods}
         data[curr_dataset] = summary
-
 
         # fill data[key] with evaluations for methods and samples
         print(f"Evaluating methods {methods} on {curr_dataset}")
         evaluate(curr_dataset, method_files, data[curr_dataset], weights, num_processes, args.grayscale)
+
+    # Original code
+    # for path, subdirs, files in os.walk(args.results_folder):
+    #     if len(files) == 0:
+    #         continue
+    #
+    #     curr_dataset = basename(dirname(path))
+    #     if curr_dataset in data:
+    #         continue
+    #
+    #     if curr_dataset not in seqs_to_eval and len(seqs_to_eval) > 0:
+    #         continue
+    #
+    #     # collect all method data
+    #     # print(path)
+    #     method_folders = sorted(glob.glob(join(dirname(path), "*")))
+    #     methods = [basename(m) for m in method_folders]
+    #     # Filter the methods we want to evaluate
+    #     methods = [m for m in methods if (m in methods_to_eval) or (len(methods_to_eval) == 0) or (m == 'GT')]
+    #     method_files = {methods[i]: sorted(glob.glob(join(method_folders[i], "*"))) for i in range(len(methods))}
+    #
+    #     # prepare data dict
+    #     summary = {method: {metric: {w: [] for w in weights} for metric in METRICS} for method in methods}
+    #     data[curr_dataset] = summary
+    #
+    #
+    #     # fill data[key] with evaluations for methods and samples
+    #     print(f"Evaluating methods {methods} on {curr_dataset}")
+    #     evaluate(curr_dataset, method_files, data[curr_dataset], weights, num_processes, args.grayscale)
 
     all_data = {}
     print("Computing per_frame_per_dataset")
