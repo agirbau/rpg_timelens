@@ -141,7 +141,7 @@ if __name__ == '__main__':
     method_files = dict()
 
     for d_path in datasets_path:
-        curr_dataset = d_path.stem
+        curr_dataset = d_path.name
 
         if curr_dataset in data:
             continue
@@ -151,13 +151,13 @@ if __name__ == '__main__':
 
         method_folders = sorted([m_path for m_path in d_path.iterdir() if m_path.is_dir()])  # Keep nomenclature
         # Filter the methods we want to evaluate
-        method_folders = [m_path for m_path in method_folders if (m_path.stem in methods_to_eval) or (len(methods_to_eval) == 0) or (m_path.stem == 'GT')]
-        methods = [m_path.stem for m_path in method_folders]
+        method_folders = [m_path for m_path in method_folders if (m_path.name in methods_to_eval) or (len(methods_to_eval) == 0) or (m_path.name == 'GT')]
+        methods = [m_path.name for m_path in method_folders]
 
         # collect all method data
         for m_path in method_folders:
             m_files = sorted([str(m) for m in m_path.iterdir() if m.is_file()])
-            method_files[m_path.stem] = m_files
+            method_files[m_path.name] = m_files
 
         # prepare data dict
         summary = {method: {metric: {w: [] for w in weights} for metric in METRICS} for method in methods}
