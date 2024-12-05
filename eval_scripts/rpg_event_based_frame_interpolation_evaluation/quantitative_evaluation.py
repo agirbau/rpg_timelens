@@ -132,6 +132,8 @@ if __name__ == '__main__':
     seqs_to_eval = args.seqs
     methods_to_eval = args.methods
 
+    print(args)
+
     data = {}
 
     weights = np.linspace(0, 1, args.num_skips+2)[1:-1]
