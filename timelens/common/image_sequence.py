@@ -10,6 +10,8 @@ from timelens.common import os_tools
 from timelens.common import iterator_modifiers
 import tqdm
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 class ImageJITReader(object):
     """Reads Image Just-in-Time"""
@@ -47,10 +49,40 @@ class ImageSequence(object):
     def make_frame_iterator(self, number_of_skips):
         return iter(self._images)
 
-    def to_folder(self, folder, file_template="{:06d}.png", timestamps_file="timestamp.txt"):
+    @staticmethod
+    def save_image(image, filename):
+        """Helper function to save a single image with full permissions."""
+        image.save(filename)
+        os.chmod(filename, 0o777)  # Set full permissions (chmod 777)
+
+    def to_folder(self, folder, file_template="{:06d}.png", timestamps_file="timestamp.txt", max_workers=8):
+        """Save images to image files concurrently with a visible progress bar."""
+        folder = os.path.abspath(folder)
+        os.makedirs(folder, exist_ok=True)  # Ensure the folder exists
+        os.chmod(folder, 0o777)  # Set full permissions for the output folder
+
+        # Use ThreadPoolExecutor for concurrent writing
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(self.save_image, image, os.path.join(folder, file_template.format(image_index))): image_index for image_index, image in enumerate(self._images)}
+
+            # Use tqdm inside the main thread
+            with tqdm.tqdm(total=len(self._images), desc="Saving Images", unit="img") as pbar:
+                for future in as_completed(futures):
+                    future.result()  # Ensure any exceptions are raised
+                    pbar.update(1)  # Update the progress bar
+
+        # Save timestamps after images are written
+        os_tools.list_to_file(
+            os.path.join(folder, timestamps_file),
+            [str(timestamp) for timestamp in self._timestamps]
+        )
+        os.chmod(os.path.join(folder, timestamps_file), 0o777)  # Set full permissions for timestamps file
+
+    def to_folder_old(self, folder, file_template="{:06d}.png", timestamps_file="timestamp.txt"):
         """Save images to image files"""
         folder = os.path.abspath(folder)
         for image_index, image in enumerate(self._images):
+            #print(image_index)
             filename = os.path.join(folder, "{:06d}.png".format(image_index))
             image.save(filename)
         os_tools.list_to_file(

@@ -44,7 +44,7 @@ def _interpolate(
             number_of_frames_to_interpolate
         )
         output_frames.append(left_frame)
-        output_frames[-1].save(join(output_folder, "{:06d}.png".format(counter)))
+        #output_frames[-1].save(join(output_folder, "{:06d}.png".format(counter)))
         counter += 1
 
         for split_index, (left_events, right_events) in enumerate(iterator_over_splits):
@@ -67,11 +67,11 @@ def _interpolate(
                 frame.squeeze().cpu().detach(), 0, 1,
             )
             output_frames.append(transforms.ToPILImage()(interpolated))
-            output_frames[-1].save(join(output_folder, "{:06d}.png".format(counter)))
+            #output_frames[-1].save(join(output_folder, "{:06d}.png".format(counter)))
             counter += 1
 
     output_frames.append(right_frame)
-    output_frames[-1].save(join(output_folder, "{:06d}.png".format(counter)))
+    #output_frames[-1].save(join(output_folder, "{:06d}.png".format(counter)))
     counter += 1
 
     return output_frames, output_timestamps
